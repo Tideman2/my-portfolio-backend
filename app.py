@@ -1,21 +1,51 @@
+import os
 from flask_cors import CORS  # <-- Add this
 from flask import Flask
-# from flask_sqlalchemy import SQLAlchemy
-from extensions import db
+# from flask_migrate import Migrate
+from dotenv import load_dotenv
+from extensions import db, mail
 from modules.project.project_route import project_bp
 from modules.project.project_model import Project
+from modules.user.user_route import auth_dp
+from modules.mail.mail_route import mail_dp
+
+load_dotenv(override=True)
 
 
 def create_app():
     appy = Flask(__name__)
-    # Using SQLite for now
-    appy.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mydatabase.db'
+    # SQLite and SQLAlchemy config
+    appy.config['SQLALCHEMY_DATABASE_URI'] = str(
+        os.environ.get("DATABASE_URI"))
     appy.config['UPLOAD_FOLDER'] = 'static/project_images'
     appy.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    CORS(appy)  # <-- This line enables CORS for all routes
 
+    # JWT config
+    appy.config['JWT_SECRET_KEY'] = os.environ.get(
+        "JWT_SECRET_KEY", "dev-secret")
+    appy.config['JWT_ALGORITHM'] = os.environ.get("JWT_ALGORITHM", "HS256")
+    appy.config['JWT_EXPIRES_IN'] = int(os.environ.get("JWT_EXPIRES_IN"))
+
+    # Mail config
+    appy.config['MAIL_SERVER'] = 'smtp.gmail.com'
+    appy.config['MAIL_PORT'] = 587
+    appy.config['MAIL_USE_TLS'] = True
+    appy.config['MAIL_USERNAME'] = str(os.environ.get("FLASK_MAIL_USERNAME"))
+    appy.config['MAIL_PASSWORD'] = str(os.environ.get("FLASK_MAIL_PASSWORD"))
+    appy.config['MAIL_DEFAULT_SENDER'] = str(
+        os.environ.get("FLASK_MAIL_USERNAME"))
+
+    # <-- This line enables CORS for all routes
+    CORS(appy, supports_credentials=True, resources={r"/*": {"origins": "*"}})
+
+    # init dependencies
+    mail.init_app(appy)
     db.init_app(appy)
+    # migrate = Migrate(appy, db)
+    # register routes blue0prints
     appy.register_blueprint(project_bp)
+    appy.register_blueprint(auth_dp)
+    appy.register_blueprint(mail_dp)
     return appy
 
 

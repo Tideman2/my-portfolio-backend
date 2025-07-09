@@ -1,9 +1,12 @@
 # project_routes.py
-from modules.project.project_model import Project
 import os
+from modules.project.project_model import Project
 from flask import Blueprint, request, jsonify, current_app
 from extensions import db
 from werkzeug.utils import secure_filename
+from decorators.jwt_required import jwt_required
+from modules.schemas.project_schema import ProjectSchema
+from marshmallow import ValidationError
 
 
 project_bp = Blueprint("project", __name__, url_prefix="/api/projects")
@@ -27,35 +30,32 @@ def get_projects():
 
 
 @project_bp.route("/", methods=["POST"])
+@jwt_required
 def create_project():
-    title = request.form.get("title")
-    stack = request.form.get("stack")
-    goal = request.form.get("goal")
-    github_url = request.form.get("gitUrl")
-    demo_url = request.form.get("demoUrl")
-    image = request.files.get("image")
-    image_path = None
+    try:
+        schema = ProjectSchema()
+        validated_data = schema.load(request.form)
+        image = request.files.get("image")
+        image_path = None
 
-    if image:
-        filename = secure_filename(image.filename)
-        image_path = os.path.join(
-            current_app.config["UPLOAD_FOLDER"], filename)
-        image.save(image_path)
+        if image:
+            filename = secure_filename(image.filename)
+            image_path = os.path.join(
+                current_app.config["UPLOAD_FOLDER"], filename)
+            image.save(image_path)
 
-    project = Project(
-        title=title,
-        stack=stack,
-        goal=goal,
-        github_url=github_url,
-        demo_url=demo_url,
-        image=image_path
-    )
-    db.session.add(project)
-    db.session.commit()
-    return jsonify({"message": "Project created"}), 201
+        project = Project(**validated_data, image=image_path)
+        db.session.add(project)
+        db.session.commit()
+        return jsonify({"message": "Project created"}), 201
+    except ValidationError as err:
+        return jsonify({
+            "errors": err.messages
+        }, 400)
 
 
 @project_bp.route("/<int:id>", methods=["DELETE"])
+@jwt_required
 def delete_project(id):
     project = Project.query.get(id)
 
