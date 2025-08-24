@@ -17,7 +17,7 @@ def create_app():
     # SQLite and SQLAlchemy config
     appy.config['SQLALCHEMY_DATABASE_URI'] = str(
         os.environ.get("DATABASE_URI"))
-    appy.config['UPLOAD_FOLDER'] = 'static/project_images'
+    appy.config['UPLOAD_FOLDER'] = 'https://tideman2.github.io/My-portfolio/static/project_images'
     appy.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # JWT config
