@@ -9,3 +9,4 @@ class Project(db.Model):
     goal = db.Column(db.String(300))
     github_url = db.Column(db.String(200))
     demo_url = db.Column(db.String(200))  # Link to live demo
+    image_public_id = db.Column(db.String(255), nullable=True)

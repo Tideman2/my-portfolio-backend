@@ -1,7 +1,8 @@
 import os
 from flask_cors import CORS  # <-- Add this
 from flask import Flask
-# from flask_migrate import Migrate
+import cloudinary
+from flask_migrate import Migrate
 from dotenv import load_dotenv
 from extensions import db, mail
 from modules.project.project_route import project_bp
@@ -9,7 +10,17 @@ from modules.project.project_model import Project
 from modules.user.user_route import auth_dp
 from modules.mail.mail_route import mail_dp
 
+
 load_dotenv(override=True)
+migrate = Migrate()
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUD_NAME"),
+    api_key=os.environ.get("CLOUD_KEY"),
+    api_secret=os.environ.get("CLOUD_SECRET"),
+    secure=True
+)
+
+# cloudinary.config(secure=True)
 
 
 def create_app():
@@ -41,7 +52,7 @@ def create_app():
     # init dependencies
     mail.init_app(appy)
     db.init_app(appy)
-    # migrate = Migrate(appy, db)
+    migrate.init_app(appy, db)
     # register routes blue0prints
     appy.register_blueprint(project_bp)
     appy.register_blueprint(auth_dp)
@@ -49,25 +60,26 @@ def create_app():
     return appy
 
 
-app = create_app()
+# app = create_app()
 
 # Create the table if it doesn't exist
-with app.app_context():
-    db.create_all()
-    # Only insert if the table is empty
-    if not Project.query.first():
-        project1 = Project(
-            title="Portfolio Website",
-            image="static/project_images/portfolio.png",
-            stack="HTML, CSS, JavaScript, Flask",
-            goal="To showcase my skills and projects",
-            github_url="https://github.com/yourusername/portfolio",
-            demo_url="https://your-portfolio-demo.com"
-        )
-        db.session.add(project1)
-        db.session.commit()
+# with app.app_context():
+#     db.create_all()
+#     # Only insert if the table is empty
+#     if not Project.query.first():
+#         project1 = Project(
+#             title="Portfolio Website",
+#             image="static/project_images/portfolio.png",
+#             stack="HTML, CSS, JavaScript, Flask",
+#             goal="To showcase my skills and projects",
+#             github_url="https://github.com/yourusername/portfolio",
+#             demo_url="https://your-portfolio-demo.com"
+#         )
+#         db.session.add(project1)
+#         db.session.commit()
 
 if __name__ == "__main__":
     # Get the port from Render's environment variable, default to 5000 for local development
+    app = create_app()
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
