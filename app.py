@@ -60,26 +60,8 @@ def create_app():
     return appy
 
 
-# app = create_app()
-
-# Create the table if it doesn't exist
-# with app.app_context():
-#     db.create_all()
-#     # Only insert if the table is empty
-#     if not Project.query.first():
-#         project1 = Project(
-#             title="Portfolio Website",
-#             image="static/project_images/portfolio.png",
-#             stack="HTML, CSS, JavaScript, Flask",
-#             goal="To showcase my skills and projects",
-#             github_url="https://github.com/yourusername/portfolio",
-#             demo_url="https://your-portfolio-demo.com"
-#         )
-#         db.session.add(project1)
-#         db.session.commit()
-
 if __name__ == "__main__":
     # Get the port from Render's environment variable, default to 5000 for local development
     app = create_app()
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 8000))
     app.run(host='0.0.0.0', port=port, debug=False)
