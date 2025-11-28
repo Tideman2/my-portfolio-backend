@@ -26,10 +26,19 @@ cloudinary.config(
 def create_app():
     appy = Flask(__name__)
     # SQLite and SQLAlchemy config
-    appy.config['SQLALCHEMY_DATABASE_URI'] = str(
-        os.environ.get("DATABASE_URI"))
-    appy.config['UPLOAD_FOLDER'] = 'static/project_images'
-    appy.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+   # FIX: Handle both local and production databases
+    if 'DATABASE_URL' in os.environ:
+        # Production (Render) - PostgreSQL
+        database_uri = os.environ['DATABASE_URL']
+        # Make sure it uses postgresql:// format
+        if database_uri.startswith('postgresql+psycopg2'):
+            database_uri = database_uri.replace(
+                'postgresql+psycopg2', 'postgresql')
+        appy.config['SQLALCHEMY_DATABASE_URI'] = database_uri
+    else:
+        # Development (local) - MySQL
+        appy.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+            "DATABASE_URI")
 
     # JWT config
     appy.config['JWT_SECRET_KEY'] = os.environ.get(
@@ -63,5 +72,5 @@ def create_app():
 if __name__ == "__main__":
     # Get the port from Render's environment variable, default to 5000 for local development
     app = create_app()
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
