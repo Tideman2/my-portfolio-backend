@@ -68,6 +68,7 @@ def login_user():
 @auth_dp.route('/verify', methods=["POST"])
 @jwt_required
 def verify_token():
+
     return jsonify({
         "verified": True
     })
