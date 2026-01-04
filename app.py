@@ -6,7 +6,7 @@ from flask_migrate import Migrate
 from dotenv import load_dotenv
 from extensions import db, mail
 from modules.project.project_route import project_bp
-from modules.project.project_model import Project
+from modules.user.user_model import User
 from modules.user.user_route import auth_dp
 from modules.mail.mail_route import mail_dp
 
@@ -57,6 +57,17 @@ def create_app():
     appy.register_blueprint(project_bp)
     appy.register_blueprint(auth_dp)
     appy.register_blueprint(mail_dp)
+
+    with appy.app_context():
+        # Check if admin logins exist, if it doesn't create it
+        admin = User.query.filter_by(username='Admin').first()
+        if not admin:
+            user = User(username='Admin')
+            user.set_password(str(os.environ.get("ADMIN_PASSWORD")))
+
+            db.session.add(user)
+            db.session.commit()
+
     return appy
 
 
