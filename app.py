@@ -4,6 +4,7 @@ from flask import Flask
 import cloudinary
 from flask_migrate import Migrate
 from dotenv import load_dotenv
+from sqlalchemy import inspect
 from extensions import db, mail
 from modules.profile.profile_model import Profile
 from modules.profile.profile_route import profile_bp
@@ -66,17 +67,20 @@ def create_app():
     appy.register_blueprint(mail_dp)
 
     with appy.app_context():
-        # Check if admin logins exist, if it doesn't create it
-        admin = User.query.filter_by(username='Admin').first()
-        if not admin:
-            user = User(username='Admin')
-            user.set_password(str(os.environ.get("ADMIN_PASSWORD")))
+        inspector = inspect(db.engine)
 
-            db.session.add(user)
-            db.session.commit()
+        # Check if admin logins exist, if it doesn't create it
+        if inspector.has_table('users'):
+            admin = User.query.filter_by(username='Admin').first()
+            if not admin:
+                user = User(username='Admin')
+                user.set_password(str(os.environ.get("ADMIN_PASSWORD")))
+
+                db.session.add(user)
+                db.session.commit()
 
         # The portfolio owner profile is a singleton row
-        if not Profile.query.first():
+        if inspector.has_table('profile') and not Profile.query.first():
             db.session.add(Profile())
             db.session.commit()
 

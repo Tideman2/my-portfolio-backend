@@ -34,6 +34,18 @@ def upgrade():
         sa.PrimaryKeyConstraint('id'),
     )
 
+    profile_table = sa.table(
+        'profile',
+        sa.column('name', sa.String),
+        sa.column('date_of_birth', sa.Date),
+        sa.column('country', sa.String),
+        sa.column('bio', sa.Text),
+    )
+    op.bulk_insert(
+        profile_table,
+        [{'name': None, 'date_of_birth': None, 'country': None, 'bio': None}],
+    )
+
 
 def downgrade():
     op.drop_table('social')
