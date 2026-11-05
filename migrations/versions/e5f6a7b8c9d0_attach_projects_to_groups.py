@@ -19,25 +19,10 @@ depends_on = None
 def upgrade():
     op.add_column('project', sa.Column('group_id', sa.Integer(), nullable=True))
 
-    connection = op.get_bind()
-    uncategorized_id = connection.execute(
-        sa.text("SELECT id FROM project_group WHERE slug = 'uncategorized'")
-    ).scalar()
-
-    if uncategorized_id is None:
-        connection.execute(
-            sa.text(
-                "INSERT INTO project_group (name, slug) "
-                "VALUES ('Uncategorized', 'uncategorized')"
-            )
-        )
-        uncategorized_id = connection.execute(
-            sa.text("SELECT id FROM project_group WHERE slug = 'uncategorized'")
-        ).scalar()
-
-    connection.execute(
-        sa.text("UPDATE project SET group_id = :group_id"),
-        {"group_id": uncategorized_id},
+    op.execute(
+        "UPDATE project SET group_id = ("
+        "SELECT id FROM project_group WHERE slug = 'uncategorized'"
+        ")"
     )
 
     op.alter_column(
