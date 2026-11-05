@@ -81,7 +81,6 @@ def create_project():
         if image:
             image_url, image_public_id = uploadImage(
                 image, validated_data["title"])
-            print(image_url)
         project = Project(**validated_data, image=image_url,
                           image_public_id=image_public_id)
 

@@ -38,11 +38,6 @@ Message:
         recipients=[os.environ.get("RECIPIENT_MAIL")],
         body=mail_body
     )
-    res = os.environ.get("RECIPIENT_MAIL")
-    sender = os.environ.get("FLASK_MAIL_DEFAULT_SENDER")
-    name = os.environ.get("FLASK_MAIL_USERNAME")
-    password = os.environ.get("FLASK_MAIL_PASSWORD")
-    print(res, sender, name, password)
     mail.send(msg)
 
     return jsonify({"message": "Message sent successfully"}), 200
