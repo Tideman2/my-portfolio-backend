@@ -153,6 +153,28 @@ class ProjectApiTest(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
 
+    def test_patch_project_accepts_json(self):
+        self.create_project(self.solo_id)
+
+        response = self.client.patch(
+            f"/api/projects/{self.project_id()}",
+            json={"title": "JSON title"},
+            headers=self.headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        with self.app.app_context():
+            self.assertEqual(Project.query.one().title, "JSON title")
+
+    def test_patch_project_rejects_an_empty_payload(self):
+        self.create_project(self.solo_id)
+
+        response = self.client.patch(
+            f"/api/projects/{self.project_id()}", json={}, headers=self.headers
+        )
+
+        self.assertEqual(response.status_code, 400)
+
     def test_patch_project_returns_404_for_unknown_id(self):
         response = self.client.patch(
             "/api/projects/999", data={"title": "Missing"}, headers=self.headers

@@ -101,8 +101,17 @@ def update_project(id):
         return jsonify({"error": "Project not found"}), 404
 
     schema = ProjectUpdateSchema()
+    if request.is_json:
+        payload = request.get_json(silent=True) or {}
+    else:
+        payload = request.form
+    image = request.files.get("image")
+
+    if not payload and not image:
+        return jsonify({"error": "No fields to update"}), 400
+
     try:
-        data = schema.load(request.form, partial=True)
+        data = schema.load(payload, partial=True)
     except ValidationError as err:
         return jsonify({"errors": err.messages}), 400
 
@@ -110,7 +119,6 @@ def update_project(id):
         return jsonify({"error": "Project group not found"}), 400
 
     old_public_id = project.image_public_id
-    image = request.files.get("image")
     if image:
         image_url, image_public_id = uploadImage(
             image, data.get("title", project.title)
