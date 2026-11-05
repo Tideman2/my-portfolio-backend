@@ -1,4 +1,6 @@
 import unittest
+from io import BytesIO
+from unittest.mock import patch
 
 from extensions import db
 from modules.project.project_model import Project
@@ -97,3 +99,91 @@ class ProjectApiTest(unittest.TestCase):
         response = self.client.get("/api/projects/?group=missing")
 
         self.assertEqual(response.status_code, 404)
+
+    def project_id(self):
+        with self.app.app_context():
+            return Project.query.one().id
+
+    def test_patch_project_requires_authentication(self):
+        self.create_project(self.solo_id)
+
+        response = self.client.patch(
+            f"/api/projects/{self.project_id()}", data={"title": "Hacked"}
+        )
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_patch_project_updates_supplied_fields(self):
+        self.create_project(self.solo_id)
+
+        response = self.client.patch(
+            f"/api/projects/{self.project_id()}",
+            data={"title": "Updated title", "goal": "Updated goal"},
+            headers=self.headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        with self.app.app_context():
+            project = Project.query.one()
+            self.assertEqual(project.title, "Updated title")
+            self.assertEqual(project.goal, "Updated goal")
+            self.assertEqual(project.stack, "Flask, MySQL")
+
+    def test_patch_project_moves_it_to_another_group(self):
+        self.create_project(self.solo_id)
+
+        response = self.client.patch(
+            f"/api/projects/{self.project_id()}",
+            data={"group_id": str(self.collab_id)},
+            headers=self.headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        with self.app.app_context():
+            self.assertEqual(Project.query.one().group_id, self.collab_id)
+
+    def test_patch_project_rejects_unknown_group(self):
+        self.create_project(self.solo_id)
+
+        response = self.client.patch(
+            f"/api/projects/{self.project_id()}",
+            data={"group_id": "999"},
+            headers=self.headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_patch_project_returns_404_for_unknown_id(self):
+        response = self.client.patch(
+            "/api/projects/999", data={"title": "Missing"}, headers=self.headers
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_patch_project_replaces_the_image_and_removes_the_old_one(self):
+        self.create_project(self.solo_id)
+        with self.app.app_context():
+            project = Project.query.one()
+            project.image = "https://old.example/image.png"
+            project.image_public_id = "old-public-id"
+            db.session.commit()
+
+        uploader = patch(
+            "modules.project.project_route.uploadImage",
+            return_value=("https://new.example/image.png", "new-public-id"),
+        )
+        destroyer = patch("modules.project.project_route.cloudinary.uploader.destroy")
+        with uploader, destroyer as destroy:
+            response = self.client.patch(
+                f"/api/projects/{self.project_id()}",
+                data={"image": (BytesIO(b"image-bytes"), "new.png")},
+                content_type="multipart/form-data",
+                headers=self.headers,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        destroy.assert_called_once_with("old-public-id")
+        with self.app.app_context():
+            project = Project.query.one()
+            self.assertEqual(project.image, "https://new.example/image.png")
+            self.assertEqual(project.image_public_id, "new-public-id")

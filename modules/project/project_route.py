@@ -7,7 +7,7 @@ from modules.project.project_model import Project
 from modules.project_group.project_group_model import ProjectGroup
 from extensions import db
 from decorators.jwt_required import jwt_required
-from modules.schemas.project_schema import ProjectSchema
+from modules.schemas.project_schema import ProjectSchema, ProjectUpdateSchema
 from marshmallow import ValidationError
 
 
@@ -92,6 +92,43 @@ def create_project():
         return jsonify({
             "errors": err.messages
         }), 400
+
+
+@project_bp.route("/<int:id>", methods=["PATCH"])
+@jwt_required
+def update_project(id):
+    project = db.session.get(Project, id)
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+
+    schema = ProjectUpdateSchema()
+    try:
+        data = schema.load(request.form, partial=True)
+    except ValidationError as err:
+        return jsonify({"errors": err.messages}), 400
+
+    if "group_id" in data and not db.session.get(ProjectGroup, data["group_id"]):
+        return jsonify({"error": "Project group not found"}), 400
+
+    old_public_id = project.image_public_id
+    image = request.files.get("image")
+    if image:
+        image_url, image_public_id = uploadImage(
+            image, data.get("title", project.title)
+        )
+        if image_url:
+            project.image = image_url
+            project.image_public_id = image_public_id
+
+    for field, value in data.items():
+        setattr(project, field, value)
+
+    db.session.commit()
+
+    if image and old_public_id and project.image_public_id != old_public_id:
+        cloudinary.uploader.destroy(old_public_id)
+
+    return jsonify({"message": "Project updated"}), 200
 
 
 @project_bp.route("/<int:id>", methods=["DELETE"])
