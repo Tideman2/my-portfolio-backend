@@ -1,4 +1,3 @@
-import jwt
 from flask import Blueprint, request, jsonify, current_app
 from utils.jwt import generate_jwt_token
 from datetime import datetime, timedelta
