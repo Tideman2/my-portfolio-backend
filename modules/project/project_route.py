@@ -4,6 +4,7 @@ import cloudinary
 import cloudinary.uploader
 from flask import Blueprint, request, jsonify
 from modules.project.project_model import Project
+from modules.project_group.project_group_model import ProjectGroup
 from extensions import db
 from decorators.jwt_required import jwt_required
 from modules.schemas.project_schema import ProjectSchema
@@ -29,7 +30,27 @@ def uploadImage(img, img_id):
 
 @project_bp.route("/", methods=["GET"])
 def get_projects():
-    projects = Project.query.all()
+    query = Project.query
+
+    group_id = request.args.get("group_id")
+    group_slug = request.args.get("group")
+
+    if group_id:
+        try:
+            group_id = int(group_id)
+        except ValueError:
+            return jsonify({"error": "Invalid group_id"}), 400
+
+        if not db.session.get(ProjectGroup, group_id):
+            return jsonify({"error": "Project group not found"}), 404
+        query = query.filter_by(group_id=group_id)
+    elif group_slug:
+        group = ProjectGroup.query.filter_by(slug=group_slug).first()
+        if not group:
+            return jsonify({"error": "Project group not found"}), 404
+        query = query.filter_by(group_id=group.id)
+
+    projects = query.order_by(Project.id).all()
     holder = []
     for project in projects:
         holder.append({
@@ -54,6 +75,9 @@ def create_project():
         image_url = None
         image_public_id = None
 
+        if not db.session.get(ProjectGroup, validated_data["group_id"]):
+            return jsonify({"error": "Project group not found"}), 400
+
         if image:
             image_url, image_public_id = uploadImage(
                 image, validated_data["title"])
@@ -67,13 +91,13 @@ def create_project():
     except ValidationError as err:
         return jsonify({
             "errors": err.messages
-        }, 400)
+        }), 400
 
 
 @project_bp.route("/<int:id>", methods=["DELETE"])
 @jwt_required
 def delete_project(id):
-    project = Project.query.get(id)
+    project = db.session.get(Project, id)
 
     if not project:
         return jsonify({"error": "Project not found"}), 404

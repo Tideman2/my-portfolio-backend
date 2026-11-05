@@ -8,3 +8,4 @@ class ProjectSchema(Schema):
     goal = fields.Str(required=True)
     github_url = fields.Str(required=True)
     demo_url = fields.Str(required=True)  # Link to live demo
+    group_id = fields.Int(required=True)

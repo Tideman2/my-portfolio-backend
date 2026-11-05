@@ -1,6 +1,7 @@
 import unittest
 
 from extensions import db
+from modules.project.project_model import Project
 from modules.project_group.project_group_model import ProjectGroup
 from modules.project_group.project_group_route import project_group_bp
 from tests.support import auth_headers, make_app
@@ -110,3 +111,29 @@ class ProjectGroupApiTest(unittest.TestCase):
         response = self.client.delete("/api/project-groups/999", headers=self.headers)
 
         self.assertEqual(response.status_code, 404)
+
+    def test_delete_group_with_projects_returns_409(self):
+        with self.app.app_context():
+            group = ProjectGroup(name="Solo", slug="solo")
+            db.session.add(group)
+            db.session.commit()
+            db.session.add(
+                Project(
+                    title="Portfolio API",
+                    stack="Flask",
+                    goal="Serve data",
+                    github_url="https://example.com",
+                    demo_url="https://example.com",
+                    group_id=group.id,
+                )
+            )
+            db.session.commit()
+            group_id = group.id
+
+        response = self.client.delete(
+            f"/api/project-groups/{group_id}", headers=self.headers
+        )
+
+        self.assertEqual(response.status_code, 409)
+        with self.app.app_context():
+            self.assertIsNotNone(db.session.get(ProjectGroup, group_id))

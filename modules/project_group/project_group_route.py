@@ -5,6 +5,7 @@ from marshmallow import ValidationError
 
 from decorators.jwt_required import jwt_required
 from extensions import db
+from modules.project.project_model import Project
 from modules.project_group.project_group_model import ProjectGroup
 from modules.schemas.project_group_schema import ProjectGroupSchema
 
@@ -83,6 +84,11 @@ def delete_project_group(id):
     group = db.session.get(ProjectGroup, id)
     if not group:
         return jsonify({"error": "Project group not found"}), 404
+
+    if Project.query.filter_by(group_id=id).first():
+        return jsonify(
+            {"error": "Project group still has projects"}
+        ), 409
 
     db.session.delete(group)
     db.session.commit()
