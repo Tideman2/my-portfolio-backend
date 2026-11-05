@@ -8,6 +8,7 @@ from extensions import db, mail
 from modules.profile.profile_model import Profile
 from modules.profile.profile_route import profile_bp
 from modules.project.project_route import project_bp
+from modules.project_group.project_group_route import project_group_bp
 from modules.skill.skill_route import skill_bp
 from modules.user.user_model import User
 from modules.user.user_route import auth_dp
@@ -59,6 +60,7 @@ def create_app():
     # register routes blue0prints
     appy.register_blueprint(profile_bp)
     appy.register_blueprint(skill_bp)
+    appy.register_blueprint(project_group_bp)
     appy.register_blueprint(project_bp)
     appy.register_blueprint(auth_dp)
     appy.register_blueprint(mail_dp)
